@@ -1,0 +1,83 @@
+version: "3.7"
+services:
+  redis:
+    image: redis:7
+    container_name: redis_app
+    expose:
+      - 6379
+    networks:
+      - celery-network
+
+  app:
+    build:
+      context: .
+    env_file:
+      - .env.dev
+    container_name: fastapi_app
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - 8000:8000
+    depends_on:
+      - redis
+    networks:
+      - celery-network
+
+  celery:
+    build:
+      context: .
+    env_file:
+      - .env.dev
+    container_name: celery_app
+    command: celery --app=src.celery.tasks:celery worker -l INFO
+    depends_on:
+      - redis
+    networks:
+      - celery-network
+
+  flower:
+    build:
+      context: .
+    env_file:
+      - .env.dev
+    container_name: flower_app
+    command: celery --app=src.celery.tasks:celery flower
+    depends_on:
+      - redis
+      - celery
+    ports:
+      - 5555:5555
+    networks:
+      - celery-network
+
+  elasticsearch:
+    container_name: els-container
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    environment:
+      - "discovery.type=single-node"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - celery-network
+    ports:
+      - "9200:9200"
+
+  kibana:
+    container_name: kib-container
+    image: docker.elastic.co/kibana/kibana:7.10.2
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es-container:9200
+    networks:
+      - celery-network
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+
+volumes:
+  redis_data:
+  es-data:
+    driver: local
+
+networks:
+  celery-network:
+    driver: bridge
