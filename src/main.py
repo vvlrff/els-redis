@@ -12,7 +12,7 @@ from src.elasticsch.router import router as router_elasticsearch
 from src.redis.router import router as router_redis
 
 app = FastAPI(
-    title="Trading App"
+    title="els API"
 )
 
 app.include_router(router_tasks)
