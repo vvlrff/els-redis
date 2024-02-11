@@ -5,21 +5,15 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
 from src.config import REDIS_HOST, REDIS_PORT
-
-from src.celery.router import router as router_tasks
-from src.demo_elastic.router import router as router_demo_elastic
-from src.elasticsch.router import router as router_elasticsearch
-from src.redis.router import router as router_redis
+from src.redis_crud.router import router as router_redis
+from src.elastic_query.router import router as reouter_elastic
 
 app = FastAPI(
     title="els API"
 )
 
-app.include_router(router_tasks)
-app.include_router(router_demo_elastic)
-app.include_router(router_elasticsearch)
 app.include_router(router_redis)
-
+app.include_router(reouter_elastic)
 
 origins = [
     "http://localhost:3000",
@@ -37,5 +31,6 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    redis = aioredis.from_url(f"redis://{REDIS_HOST}:{REDIS_PORT}", encoding="utf8", decode_responses=True)
+    redis = aioredis.from_url(
+        f"redis://{REDIS_HOST}:{REDIS_PORT}", encoding="utf8", decode_responses=True)
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
